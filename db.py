@@ -10,7 +10,7 @@ class DBClient:
     def clear_settings(self, count:int=1):
         settings=[['не по ссылке',0, 0]]
         for i in range(1,count+1,1):
-            settings.append([f"по ссылке {i}",rnd.randint(1e5,1e6), 0])
+            settings.append([f"по ссылке {i}",i, 0])
         return settings
     
     def get_settings(self, count:int=1):

@@ -28,22 +28,28 @@ def addLinc(option):
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(message.from_user.id,'🤝')
-    print(message)
-    markup = types.InlineKeyboardMarkup()
-    btn1 = types.InlineKeyboardButton(text='Ссылка 1', url='https://t.me/phroil_bot?start=1')
-    btn2 = types.InlineKeyboardButton(text='Ссылка 2', url='https://t.me/phroil_bot?start=2')
-    markup.add(btn1)
-    markup.add(btn2)
-    text = ""
+    text = "Сюда можно попасть по ссылкам:\n"
+    text += "Ссылка 1 https://t.me/phroil_bot?source=1\n"
+    text += "Ссылка 1 https://t.me/phroil_bot?source=2\n"
     # print(message.text.split().pop())
-    options = addLinc(message.text.split().pop())
-    print(options)
-    for option in options:
-        text+=f"Перешли {option[0]}: {option[1]}\n"
-    bot.send_message(message.from_user.id, text, reply_markup = markup)
+    # options = addLinc(message.text.split().pop())
+    # print(options)
+    # for option in options:
+    #     text+=f"Перешли {option[0]}: {option[1]}\n"
+    bot.send_message(message.from_user.id, text)
 
+    keyboard = types.ReplyKeyboardMarkup()
+    button_1 = types.KeyboardButton(text="Показать статистику")
+    keyboard.add(button_1)
+    message.answer(text, reply_markup=keyboard)
+didit=False
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
     bot.send_message(message.from_user.id,'Ок👍')
+    if didit: bot.send_message(message.from_user.id, 'Было')
 
+
+@bot.message_handler(commands=['source'])
+def source(message):
+    didit=True
 bot.polling(none_stop=True, interval=0) 
