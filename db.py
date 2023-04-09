@@ -1,43 +1,66 @@
 import sqlite3
 import random as rnd
+import numpy as np
 
 class DBClient:
-    def __init__(self, count:int=1,dbname:str="data.db") -> None:
+    def __init__(self,dbname:str="data.db") -> None:
         self.connect = sqlite3.connect(dbname)
         self.cursor = self.connect.cursor()
-        self.clear_settings(count)
         
-    def clear_settings(self, count:int=1):
-        settings=[['не по ссылке',0, 0]]
-        for i in range(1,count+1,1):
-            settings.append([f"по ссылке {i}",i, 0])
-        return settings
-    
-    def get_settings(self, count:int=1):
-        settings = self.clear_settings(count)
+    def create_settings(self, urls):
+        settings={"name": "Не по ссылке", "urlid": "-", "count": 0}
+        self.save_settings(settings)
+        for url in urls:
+            name = url["name"]
+            urlid = url["urlid"]
+            # settings.append({"name": name, "urlid": urlid, "count": 0})
+            self.save_settings({"name": name, "urlid": urlid, "count": 0})
+
+    def check_settings(self, response, urls):
+        names = np.array(response).transpose()[1]
+        for url in urls:
+            if not (url["name"] in names):
+                name = url["name"]
+                urlid = url["urlid"]
+                self.save_settings({"name": name, "urlid": urlid, "count": 0})
+
+    def get_settings(self, urls):
         response = self.cursor.execute("select name from sqlite_master")
-        if response.fetchone() is None: return settings
+        if response.fetchone() is None: self.create_settings(urls) # settings
         # таблицы не существует
         
         self.cursor.execute("select count(id) from settings;")
         response = self.cursor.fetchall()
-        if response[0][0] == 0: return settings
+        if response[0][0] == 0: self.create_settings(urls) # settings
         # записей не существует
+        
+        self.cursor.execute("select * from settings;")
+        response = self.cursor.fetchall()
+        self.check_settings(response, urls)
+        # обновляется статистика если есть новые url
 
         self.cursor.execute("select * from settings;")
         response = self.cursor.fetchall()
         # print(response)
         settings = []
         for res in response:
-            settings.append([res[1],res[2], res[3]])
+            name = res[1]
+            urlid = res[2]
+            count = res[3]
+            settings.append({"name": name, "urlid": urlid, "count": count})
+
         return settings
     
     def save_settings(self, settings) -> None:
-        prepare_command = "create table if not exists settings (id int primary key, name varchar(225), option int, count int);"
+        prepare_command = "create table if not exists settings (id INTEGER primary key autoincrement NOT NULL UNIQUE, name varchar(225), urlid varchar(225) UNIQUE, count int);"
         self.cursor.execute(prepare_command)
-        for i in range(len(settings)):
-            command = f"insert or replace into settings (id,name, option, count) values ({i},'{settings[i][0]}',{settings[i][1]}, {settings[i][2]});"
-            self.cursor.execute(command)
+        command = ""
+        # for i in range(len(settings)):
+        name = settings["name"]
+        urlid = settings["urlid"]
+        count = settings["count"]
+        command += f"insert or replace into settings (name, urlid, count) values ('{name}', '{urlid}', {count});"
+        self.cursor.execute(command)
         self.connect.commit()
 
 # if __name__ == '__main__':

@@ -1,55 +1,66 @@
+import json
 import telebot
 from telebot import types
 from db import DBClient
-# import logging
 
-token = '5803984180:AAEN7i9qdI1VDceX29Kq8MEGzgt3pPrV4es'
-# options = ['1','2','3']
-# counts = [0,0,0]
-bot = telebot.TeleBot(token)
-count_linc = 2
-# logger = telebot.logger
-# telebot.logger.setLevel(logging.DEBUG)
+def load_json(name):
+    file = open("data.json")
+    data = json.load(file)
+    return data[name]
 
-def addLinc(option):
+def add_url(urlid):
     dbclient = DBClient()
-    options = dbclient.get_settings(count_linc)
-    try:
-        int_option = int(option)
-        if int_option>0 and int_option<=count_linc:
-            options[int_option][1]+=1
-        else: raise ValueError()
-    except ValueError:
-        options[0][1]+=1
-    finally:
-        dbclient.save_settings(options)
-        return options
+    urlsbd = dbclient.get_settings(urls)
+    for i in range(1,len(urlsbd)):
+        if urlid == urlsbd[i]["urlid"]: 
+            urlsbd[i]["count"]+=1
+            break
+    if i == len(urlsbd)-1:
+        urlsbd[0]["count"]+=1
+    for url in urlsbd:
+        dbclient.save_settings(url)
+
+def get_urls():
+    dbclient = DBClient()
+    return dbclient.get_settings(urls)
+
+textBtnStatistics = "Показать статистику"
+token = load_json('API_TOKEN')
+urls = load_json('URLS')
+bot = telebot.TeleBot(token)
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    parametres = message.text.split()
+    if len(parametres) > 1: urlid = parametres[1]
+    else: urlid = ""
+    add_url(urlid)
+    
     bot.send_message(message.from_user.id,'🤝')
     text = "Сюда можно попасть по ссылкам:\n"
-    text += "Ссылка 1 https://t.me/phroil_bot?source=1\n"
-    text += "Ссылка 1 https://t.me/phroil_bot?source=2\n"
-    # print(message.text.split().pop())
-    # options = addLinc(message.text.split().pop())
-    # print(options)
-    # for option in options:
-    #     text+=f"Перешли {option[0]}: {option[1]}\n"
-    bot.send_message(message.from_user.id, text)
+    for url in urls:
+        text += f"{url['name']} https://t.me/phroil_bot?start={url['urlid']} \n"
+    
+    keyboard =  types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = types.KeyboardButton(text=textBtnStatistics)
+    keyboard.add(btn1)
+    bot.send_message(message.from_user.id, text, reply_markup=keyboard)
+    
 
-    keyboard = types.ReplyKeyboardMarkup()
-    button_1 = types.KeyboardButton(text="Показать статистику")
-    keyboard.add(button_1)
-    message.answer(text, reply_markup=keyboard)
-didit=False
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
     bot.send_message(message.from_user.id,'Ок👍')
-    if didit: bot.send_message(message.from_user.id, 'Было')
+    if message.text == textBtnStatistics: get_statistics(message)
+
+@bot.message_handler(commands=['statistics'])
+def get_statistics(message):
+    urlsbd = get_urls()
+    text = "Статистика открытия этого бота\n"
+    text += "============================\n"
+    for url in urlsbd:
+        text += f"{url['name']}: {url['count']}\n"
+    bot.send_message(message.from_user.id, text)
 
 
-@bot.message_handler(commands=['source'])
-def source(message):
-    didit=True
 bot.polling(none_stop=True, interval=0) 
+
