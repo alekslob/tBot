@@ -2,40 +2,36 @@ import json
 import telebot
 from telebot import types
 from db import DBClient
-
+# import numpy as np
 def load_json(name):
     file = open("data.json")
     data = json.load(file)
     return data[name]
 
 def add_url(urlid):
-    dbclient = DBClient()
-    urlsbd = dbclient.get_settings(urls)
-    for i in range(1,len(urlsbd)):
-        if urlid == urlsbd[i]["urlid"]: 
-            urlsbd[i]["count"]+=1
-            break
-    if i == len(urlsbd)-1:
-        urlsbd[0]["count"]+=1
-    for url in urlsbd:
-        dbclient.save_settings(url)
+    dbclient = DBClient(load_json('URLS'))
+    url = dbclient.get_url(urlid)
+    if url is None:
+        url = dbclient.get_url("-")
+    url['count']+=1
+    dbclient.save_urls(url)
 
 def get_urls():
-    dbclient = DBClient()
-    return dbclient.get_settings(urls)
+    dbclient = DBClient(load_json('URLS'))
+    return dbclient.get_urls()
 
 textBtnStatistics = "Показать статистику"
 token = load_json('API_TOKEN')
-urls = load_json('URLS')
 bot = telebot.TeleBot(token)
 
 @bot.message_handler(commands=['start'])
 def start(message):
     parametres = message.text.split()
     if len(parametres) > 1: urlid = parametres[1]
-    else: urlid = ""
+    else: urlid = " "
     add_url(urlid)
-    
+
+    urls = load_json('URLS')
     bot.send_message(message.from_user.id,'🤝')
     text = "Сюда можно попасть по ссылкам:\n"
     for url in urls:
