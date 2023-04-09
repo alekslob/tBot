@@ -2,7 +2,7 @@ import json
 import telebot
 from telebot import types
 from db import DBClient
-# import numpy as np
+
 def load_json(name):
     file = open("data.json")
     data = json.load(file)
@@ -19,6 +19,9 @@ def add_url(urlid):
 def get_urls():
     dbclient = DBClient(load_json('URLS'))
     return dbclient.get_urls()
+
+
+
 
 textBtnStatistics = "Показать статистику"
 token = load_json('API_TOKEN')
@@ -40,6 +43,7 @@ def start(message):
     keyboard =  types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton(text=textBtnStatistics)
     keyboard.add(btn1)
+
     bot.send_message(message.from_user.id, text, reply_markup=keyboard)
     
 
@@ -51,8 +55,8 @@ def get_text_messages(message):
 @bot.message_handler(commands=['statistics'])
 def get_statistics(message):
     urlsbd = get_urls()
-    text = "Статистика открытия этого бота\n"
-    text += "============================\n"
+    text = "Статистика открытия этого диалога\n"
+    text += "=============================\n"
     for url in urlsbd:
         text += f"{url['name']}: {url['count']}\n"
     bot.send_message(message.from_user.id, text)
