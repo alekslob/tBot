@@ -25,6 +25,7 @@ def get_urls():
 
 textBtnStatistics = "Показать статистику"
 token = load_json('API_TOKEN')
+namebot = load_json('NAME_BOT')
 bot = telebot.TeleBot(token)
 
 @bot.message_handler(commands=['start'])
@@ -38,7 +39,7 @@ def start(message):
     bot.send_message(message.from_user.id,'🤝')
     text = "Сюда можно попасть по ссылкам:\n"
     for url in urls:
-        text += f"{url['name']} https://t.me/phroil_bot?start={url['urlid']} \n"
+        text += f"{url['name']} https://t.me/{namebot}?start={url['urlid']} \n"
     
     keyboard =  types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton(text=textBtnStatistics)

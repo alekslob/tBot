@@ -1,7 +1,9 @@
 {
     "API_TOKEN":"5803984180:AAEN7i9qdI1VDceX29Kq8MEGzgt3pPrV4es",
+    "NAME_BOT":"phroil_bot",
     "URLS": [
         { "name": "—сылка 1", "urlid": "1111" },
         { "name": "—сылка 2", "urlid": "2222" }
     ]
+
 }
