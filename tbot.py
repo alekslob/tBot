@@ -1,67 +1,57 @@
-import json
-import telebot
-from telebot import types
+import asyncio
 from db import DBClient
+from telegram import Bot, Update
+from telegram.ext import ApplicationBuilder, Updater
+from telegram.ext import CommandHandler, MessageHandler, filters
 
-def load_json(name):
-    file = open("data.json")
-    data = json.load(file)
-    return data[name]
+class Tbot:
+    def __init__(self, token:str, db:DBClient) -> None:
+        self.textBtnStatistics = "Показать статистику"
+        self.token = token
+        self.db = db
 
-def add_url(urlid):
-    dbclient = DBClient(load_json('URLS'))
-    url = dbclient.get_url(urlid)
-    if url is None:
-        url = dbclient.get_url("-")
-    url['count']+=1
-    dbclient.save_urls(url)
-
-def get_urls():
-    dbclient = DBClient(load_json('URLS'))
-    return dbclient.get_urls()
-
-
-
-
-textBtnStatistics = "Показать статистику"
-token = load_json('API_TOKEN')
-namebot = load_json('NAME_BOT')
-bot = telebot.TeleBot(token)
-
-@bot.message_handler(commands=['start'])
-def start(message):
-    parametres = message.text.split()
-    if len(parametres) > 1: urlid = parametres[1]
-    else: urlid = " "
-    add_url(urlid)
-
-    urls = load_json('URLS')
-    bot.send_message(message.from_user.id,'🤝')
-    text = "Сюда можно попасть по ссылкам:\n"
-    for url in urls:
-        text += f"{url['name']} https://t.me/{namebot}?start={url['urlid']} \n"
+    def work(self):
+        application = ApplicationBuilder().token(self.token).build()
+        application.add_handler(CommandHandler('start', self.__start))
+        application.add_handler(CommandHandler('statistics', self.__get_statisics))
+        application.add_handler(MessageHandler(filters.TEXT, self.__get_text))
+        application.run_polling()
     
-    keyboard =  types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn1 = types.KeyboardButton(text=textBtnStatistics)
-    keyboard.add(btn1)
-
-    bot.send_message(message.from_user.id, text, reply_markup=keyboard)
+    def __add_url(self, urlid:str):
+        url = self.db.get_url(urlid)
+        if url['name'] is None:
+            url['name'] = urlid
+        url['count']+=1
+        self.db.save_url(url)
     
+    def __get_urlsid(self):
+        return self.db.get_urlsid()
+    def __get_urls(self):
+        return self.db.get_urls()
+        
 
-@bot.message_handler(content_types=['text'])
-def get_text_messages(message):
-    bot.send_message(message.from_user.id,'Ок👍')
-    if message.text == textBtnStatistics: get_statistics(message)
-
-@bot.message_handler(commands=['statistics'])
-def get_statistics(message):
-    urlsbd = get_urls()
-    text = "Статистика открытия этого диалога\n"
-    text += "=============================\n"
-    for url in urlsbd:
-        text += f"{url['name']}: {url['count']}\n"
-    bot.send_message(message.from_user.id, text)
-
-
-bot.polling(none_stop=True, interval=0) 
-
+    async def __start(self,update, context):
+        await update.message.reply_text('🤝')
+        parametrs = update.message.text.split()
+        if len(parametrs) > 1: urlid = parametrs[1]
+        else: urlid = "-"
+        self.__add_url(urlid)
+        
+        text = "Сюда можно попасть по ссылкам:\n"
+        urlsid = self.__get_urlsid()
+        for urlid in urlsid:
+            text += f"{update.get_bot().link}?start={urlid} \n"
+        await update.message.reply_text(text)
+        
+    async def __get_text(self, update, context):
+        await update.message.reply_text('Ок👍')
+        if update.message.text == self.textBtnStatistics:
+            await self.__get_statisics(update, context)
+        
+    async def __get_statisics(self, update, context):
+        urlsbd = self.__get_urls()
+        text = "Статистика открытия этого диалога\n"
+        text += "=============================\n"
+        for url in urlsbd:
+            text += f"{url['name']}: {url['count']}\n"
+        await update.message.reply_text(text)
